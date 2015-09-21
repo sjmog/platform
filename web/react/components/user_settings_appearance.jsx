@@ -7,7 +7,17 @@ var SettingItemMax = require('./setting_item_max.jsx');
 var Client = require('../utils/client.jsx');
 var Utils = require('../utils/utils.jsx');
 
-var ThemeColors = ['#2389d7', '#008a17', '#dc4fad', '#ac193d', '#0072c6', '#d24726', '#ff8f32', '#82ba00', '#03b3b2', '#008299', '#4617b4', '#8c0095', '#004b8b', '#004b8b', '#570000', '#380000', '#585858', '#000000'];
+var Themes = [];
+
+var DefaultTheme = {};
+DefaultTheme.type = 'default';
+DefaultTheme.sidebarBg = '#fafafa';
+Themes.push(DefaultTheme);
+
+var SlackTheme = {};
+SlackTheme.type = 'slack';
+SlackTheme.sidebarBg = '#4D394B';
+Themes.push(SlackTheme);
 
 export default class UserSettingsAppearance extends React.Component {
     constructor(props) {
@@ -20,16 +30,14 @@ export default class UserSettingsAppearance extends React.Component {
         this.state = this.getStateFromStores();
     }
     getStateFromStores() {
-        var user = UserStore.getCurrentUser();
-        var theme = '#2389d7';
-        if (ThemeColors != null) {
-            theme = ThemeColors[0];
-        }
+        let user = UserStore.getCurrentUser();
+        let theme = null;
+
         if (user.props && user.props.theme) {
             theme = user.props.theme;
         }
 
-        return {theme: theme.toLowerCase()};
+        return {theme};
     }
     submitTheme(e) {
         e.preventDefault();
@@ -51,9 +59,30 @@ export default class UserSettingsAppearance extends React.Component {
             }.bind(this)
         );
     }
-    updateTheme(e) {
-        var hex = Utils.rgb2hex(e.target.style.backgroundColor);
-        this.setState({theme: hex.toLowerCase()});
+    updateTheme(e, type) {
+        console.log(e);
+        console.log(type);
+        const theme = this.state.theme;
+        theme[type] = e.target.value;
+        this.setState({theme});
+    }
+    updateRadio(e, section) {
+        console.log(e);
+        console.log(section);
+        const theme = this.state.theme;
+
+        if (section === 'premade') {
+            const user = UserStore.getCurrentUser();
+            if (user.props.theme && user.props.theme.type) {
+                theme.type = user.props.theme.type;
+            } else {
+                theme.type = 'default';
+            }
+        } else {
+            theme.type = 'custom';
+        }
+
+        this.setState({theme});
     }
     handleClose() {
         this.setState({serverError: null});
@@ -81,66 +110,50 @@ export default class UserSettingsAppearance extends React.Component {
             serverError = this.state.serverError;
         }
 
-        var themeSection;
-        var self = this;
+        const theme = this.state.theme;
+        console.log(theme);
 
-        if (ThemeColors != null) {
-            if (this.props.activeSection === 'theme') {
-                var themeButtons = [];
-
-                for (var i = 0; i < ThemeColors.length; i++) {
-                    themeButtons.push(
-                        <button
-                            key={ThemeColors[i] + 'key' + i}
-                            ref={ThemeColors[i]}
-                            type='button'
-                            className='btn btn-lg color-btn'
-                            style={{backgroundColor: ThemeColors[i]}}
-                            onClick={this.updateTheme}
-                        />
-                    );
-                }
-
-                var inputs = [];
-
-                inputs.push(
-                    <li
-                        key='themeColorSetting'
-                        className='setting-list-item'
-                    >
-                        <div
-                            className='btn-group'
-                            data-toggle='buttons-radio'
-                        >
-                            {themeButtons}
-                        </div>
-                    </li>
-                );
-
-                themeSection = (
-                    <SettingItemMax
-                        title='Theme Color'
-                        inputs={inputs}
-                        submit={this.submitTheme}
-                        serverError={serverError}
-                        updateSection={function updateSection(e) {
-                            self.props.updateSection('');
-                            e.preventDefault();
-                        }}
-                    />
-                );
-            } else {
-                themeSection = (
-                    <SettingItemMin
-                        title='Theme Color'
-                        describe={this.state.theme}
-                        updateSection={function updateSection() {
-                            self.props.updateSection('theme');
-                        }}
-                    />
-                );
-            }
+        let customSection;
+        let premadeSection;
+        if (theme.type === 'custom') {
+            customSection = (
+                <input
+                    type='text'
+                    value={theme.sidebarBg}
+                    onChange={this.updateTheme.bind(this, 'sidebarBg')}
+                />
+            );
+        } else {
         }
+
+        const themeUI = (
+            <div className='section-max'>
+                <div className='radio'>
+                    <label>
+                        <input type='radio'
+                            checked={this.theme !== 'custom'}
+                            onChange={this.updateRadio.bind(this, 'premade')}
+                        >
+                            {'Theme Colors'}
+                        </input>
+                    </label>
+                    <br/>
+                </div>
+                {premadeSection}
+                <div className='radio'>
+                    <label>
+                        <input type='radio'
+                            checked={this.theme === 'custom'}
+                            onChange={this.updateRadio.bind(this, 'custom')}
+                        >
+                            {'Custom Theme'}
+                        </input>
+                    </label>
+                    <br/>
+                </div>
+                {customSection}
+            </div>
+        );
 
         return (
             <div>
@@ -163,7 +176,7 @@ export default class UserSettingsAppearance extends React.Component {
                 <div className='user-settings'>
                     <h3 className='tab-header'>Appearance Settings</h3>
                     <div className='divider-dark first'/>
-                    {themeSection}
+                    {themeUI}
                     <div className='divider-dark'/>
                 </div>
             </div>
