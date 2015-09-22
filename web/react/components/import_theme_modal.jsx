@@ -1,26 +1,45 @@
 // Copyright (c) 2015 Spinpunch, Inc. All Rights Reserved.
 // See License.txt for license information.
 
+const UserStore = require('../stores/user_store.jsx');
 const Utils = require('../utils/utils.jsx');
-var Modal = ReactBootstrap.Modal;
+const Client = require('../utils/client.jsx');
+const Modal = ReactBootstrap.Modal;
+
+const AppDispatcher = require('../dispatcher/app_dispatcher.jsx');
+const Constants = require('../utils/constants.jsx');
+const ActionTypes = Constants.ActionTypes;
 
 export default class ImportThemeModal extends React.Component {
     constructor(props) {
         super(props);
 
+        this.updateShow = this.updateShow.bind(this);
         this.handleSubmit = this.handleSubmit.bind(this);
         this.handleChange = this.handleChange.bind(this);
 
         this.state = {
-            inputError: ''
+            inputError: '',
+            show: false
         };
+    }
+    componentDidMount() {
+        UserStore.addImportModalListener(this.updateShow);
+    }
+    componentWillUnmount() {
+        UserStore.removeImportModalListener(this.updateShow);
+    }
+    updateShow(show) {
+        this.setState({show});
     }
     handleSubmit(e) {
         e.preventDefault();
 
-        const text = e.target.value;
+        const text = React.findDOMNode(this.refs.input).value;
 
         if (!this.isInputValid(text)) {
+            console.log(text);
+            this.setState({inputError: 'Invalid format, please try copying and pasting in again.'});
             return;
         }
 
@@ -31,41 +50,62 @@ export default class ImportThemeModal extends React.Component {
         theme.linkColor = colors[7];
         // asaad add the rest of the slack to mattermost color conversions here
 
-        this.props.updateTheme(theme);
+        let user = UserStore.getCurrentUser();
+        user.theme_props = theme;
+
+        Client.updateUser(user,
+            (data) => {
+                AppDispatcher.handleServerAction({
+                    type: ActionTypes.RECIEVED_ME,
+                    me: data
+                });
+
+                this.setState({show: false});
+                Utils.applyTheme(theme);
+                $('#user_settings').modal('show');
+            },
+            (err) => {
+                var state = this.getStateFromStores();
+                state.serverError = err;
+                this.setState(state);
+            }
+        );
     }
     isInputValid(text) {
-        let isValid = true;
+        if (text.length === 0) {
+            return false;
+        }
 
         if (text.indexOf(' ') !== -1) {
-            isValid = false;
+            return false;
         }
 
         if (text.length > 0 && text.indexOf(',') === -1) {
-            isValid = false;
+            return false;
         }
 
         if (text.length > 0) {
             const colors = text.split(',');
 
             if (colors.length !== 8) {
-                isValid = false;
-            } else {
-                for (let i = 0; i < colors.length; i++) {
-                    if (colors[i].length !== 7 && colors[i].length !== 4) {
-                        isValid = false;
-                    }
+                return false;
+            }
 
-                    if (colors[i].charAt(0) !== '#') {
-                        isValid = false;
-                    }
+            for (let i = 0; i < colors.length; i++) {
+                if (colors[i].length !== 7 && colors[i].length !== 4) {
+                    return false;
+                }
+
+                if (colors[i].charAt(0) !== '#') {
+                    return false;
                 }
             }
         }
 
-        return isValid;
+        return true;
     }
     handleChange(e) {
-        if (this.isValid(e.target.value)) {
+        if (this.isInputValid(e.target.value)) {
             this.setState({inputError: null});
         } else {
             this.setState({inputError: 'Invalid format, please try copying and pasting in again.'});
@@ -76,8 +116,8 @@ export default class ImportThemeModal extends React.Component {
         return (
             <span>
                 <Modal
-                    show={this.props.show}
-                    onHide={this.props.onModalDismissed}
+                    show={this.state.show}
+                    onHide={() => this.setState({show: false})}
                 >
                     <Modal.Header closeButton={true}>
                         <Modal.Title>{'Import Slack Theme'}</Modal.Title>
@@ -91,6 +131,7 @@ export default class ImportThemeModal extends React.Component {
                                 {'To import a theme, go to a Slack team and look for “”Preferences” -> Sidebar Theme”. Open the custom theme option, copy the theme color values and paste them here:'}
                                 <br/>
                                 <input
+                                    ref='input'
                                     type='text'
                                     onChange={this.handleChange}
                                 />
@@ -101,7 +142,7 @@ export default class ImportThemeModal extends React.Component {
                             <button
                                 type='button'
                                 className='btn btn-default'
-                                onClick={this.props.onModalDismissed}
+                                onClick={() => this.setState({show: false})}
                             >
                                 {'Cancel'}
                             </button>
@@ -120,12 +161,3 @@ export default class ImportThemeModal extends React.Component {
         );
     }
 }
-
-ImportThemeModal.defaultProps = {
-    show: false
-};
-ImportThemeModal.propTypes = {
-    show: React.PropTypes.bool.isRequired,
-    updateTheme: React.PropTypes.func.isRequired,
-    onModalDismissed: React.PropTypes.func.isRequired
-};

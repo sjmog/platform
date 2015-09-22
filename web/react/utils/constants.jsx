@@ -36,7 +36,9 @@ module.exports = {
 
         RECIEVED_CONFIG: null,
 
-        RECIEVED_LOGS: null
+        RECIEVED_LOGS: null,
+
+        TOGGLE_IMPORT_THEME_MODAL: null
     }),
 
     PayloadSources: keyMirror({

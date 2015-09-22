@@ -1,24 +1,47 @@
 // Copyright (c) 2015 Spinpunch, Inc. All Rights Reserved.
 // See License.txt for license information.
 
-var UserStore = require('../stores/user_store.jsx');
-var Client = require('../utils/client.jsx');
-var Constants = require('../utils/constants.jsx');
-var Utils = require('../utils/utils.jsx');
-var CustomThemeChooser = require('./custom_theme_chooser.jsx');
-var PremadeThemeChooser = require('./premade_theme_chooser.jsx');
-var ImportThemeModal = require('./import_theme_modal.jsx');
+const UserStore = require('../stores/user_store.jsx');
+const Client = require('../utils/client.jsx');
+const Utils = require('../utils/utils.jsx');
+const CustomThemeChooser = require('./custom_theme_chooser.jsx');
+const PremadeThemeChooser = require('./premade_theme_chooser.jsx');
+
+const AppDispatcher = require('../dispatcher/app_dispatcher.jsx');
+const Constants = require('../utils/constants.jsx');
+const ActionTypes = Constants.ActionTypes;
 
 export default class UserSettingsAppearance extends React.Component {
     constructor(props) {
         super(props);
 
+        this.onChange = this.onChange.bind(this);
         this.submitTheme = this.submitTheme.bind(this);
         this.updateTheme = this.updateTheme.bind(this);
         this.handleClose = this.handleClose.bind(this);
         this.handleImportModal = this.handleImportModal.bind(this);
 
         this.state = this.getStateFromStores();
+
+        this.originalTheme = this.state.theme;
+    }
+    componentDidMount() {
+        UserStore.addChangeListener(this.onChange);
+
+        if (this.props.activeSection === 'theme') {
+            $(React.findDOMNode(this.refs[this.state.theme])).addClass('active-border');
+        }
+        $('#user_settings').on('hidden.bs.modal', this.handleClose);
+    }
+    componentDidUpdate() {
+        if (this.props.activeSection === 'theme') {
+            $('.color-btn').removeClass('active-border');
+            $(React.findDOMNode(this.refs[this.state.theme])).addClass('active-border');
+        }
+    }
+    componentWillUnmount() {
+        UserStore.removeChangeListener(this.onChange);
+        $('#user_settings').off('hidden.bs.modal', this.handleClose);
     }
     getStateFromStores() {
         const user = UserStore.getCurrentUser();
@@ -35,7 +58,14 @@ export default class UserSettingsAppearance extends React.Component {
             type = 'custom';
         }
 
-        return {theme, type, showImportModal: false};
+        return {theme, type};
+    }
+    onChange() {
+        const newState = this.getStateFromStores();
+
+        if (!Utils.areStatesEqual(this.state, newState)) {
+            this.setState(newState);
+        }
     }
     submitTheme(e) {
         e.preventDefault();
@@ -43,7 +73,12 @@ export default class UserSettingsAppearance extends React.Component {
         user.theme_props = this.state.theme;
 
         Client.updateUser(user,
-            () => {
+            (data) => {
+                AppDispatcher.handleServerAction({
+                    type: ActionTypes.RECIEVED_ME,
+                    me: data
+                });
+
                 $('#user_settings').off('hidden.bs.modal', this.handleClose);
                 this.props.updateTab('general');
                 $('#user_settings').modal('hide');
@@ -69,26 +104,14 @@ export default class UserSettingsAppearance extends React.Component {
         Utils.applyTheme(state.theme);
 
         this.setState(state);
-        this.props.updateTab('general');
         $('#user_settings').modal('hide');
     }
-    componentDidMount() {
-        if (this.props.activeSection === 'theme') {
-            $(React.findDOMNode(this.refs[this.state.theme])).addClass('active-border');
-        }
-        $('#user_settings').on('hidden.bs.modal', this.handleClose);
-    }
-    componentDidUpdate() {
-        if (this.props.activeSection === 'theme') {
-            $('.color-btn').removeClass('active-border');
-            $(React.findDOMNode(this.refs[this.state.theme])).addClass('active-border');
-        }
-    }
-    componentWillUnmount() {
-        $('#user_settings').off('hidden.bs.modal', this.handleClose);
-    }
     handleImportModal() {
-        this.setState({showImportModal: true});
+        $('#user_settings').modal('hide');
+        AppDispatcher.handleViewAction({
+            type: ActionTypes.TOGGLE_IMPORT_THEME_MODAL,
+            value: true
+        });
     }
     render() {
         // asaad this control needs UI work
@@ -193,11 +216,6 @@ export default class UserSettingsAppearance extends React.Component {
                 >
                     {'Import from Slack'}
                 </a>
-                <ImportThemeModal
-                    show={this.state.showImportModal}
-                    updateTheme={this.updateTheme}
-                    onModalDismissed={() => this.setState({showImportModal: false})}
-                />
             </div>
         );
     }
