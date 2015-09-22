@@ -50,6 +50,7 @@ type User struct {
 	LastPasswordUpdate int64     `json:"last_password_update"`
 	LastPictureUpdate  int64     `json:"last_picture_update"`
 	FailedAttempts     int       `json:"failed_attempts"`
+	ThemeProps         StringMap `json:"theme_props"`
 }
 
 // IsValid validates the user and returns an error if it isn't configured
@@ -106,6 +107,10 @@ func (u *User) IsValid() *AppError {
 
 	if len(u.Password) > 0 && len(u.AuthData) > 0 {
 		return NewAppError("User.IsValid", "Invalid user, password and auth data cannot both be set", "user_id="+u.Id)
+	}
+
+	if len(u.ThemeProps) > 2000 {
+		return NewAppError("User.IsValid", "Invalid theme", "user_id="+u.Id)
 	}
 
 	return nil

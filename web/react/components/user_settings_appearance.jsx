@@ -2,22 +2,12 @@
 // See License.txt for license information.
 
 var UserStore = require('../stores/user_store.jsx');
-var SettingItemMin = require('./setting_item_min.jsx');
-var SettingItemMax = require('./setting_item_max.jsx');
 var Client = require('../utils/client.jsx');
+var Constants = require('../utils/constants.jsx');
 var Utils = require('../utils/utils.jsx');
-
-var Themes = [];
-
-var DefaultTheme = {};
-DefaultTheme.type = 'default';
-DefaultTheme.sidebarBg = '#fafafa';
-Themes.push(DefaultTheme);
-
-var SlackTheme = {};
-SlackTheme.type = 'slack';
-SlackTheme.sidebarBg = '#4D394B';
-Themes.push(SlackTheme);
+var CustomThemeChooser = require('./custom_theme_chooser.jsx');
+var PremadeThemeChooser = require('./premade_theme_chooser.jsx');
+var ImportThemeModal = require('./import_theme_modal.jsx');
 
 export default class UserSettingsAppearance extends React.Component {
     constructor(props) {
@@ -26,66 +16,59 @@ export default class UserSettingsAppearance extends React.Component {
         this.submitTheme = this.submitTheme.bind(this);
         this.updateTheme = this.updateTheme.bind(this);
         this.handleClose = this.handleClose.bind(this);
+        this.handleImportModal = this.handleImportModal.bind(this);
 
         this.state = this.getStateFromStores();
     }
     getStateFromStores() {
-        let user = UserStore.getCurrentUser();
+        const user = UserStore.getCurrentUser();
         let theme = null;
 
-        if (user.props && user.props.theme) {
-            theme = user.props.theme;
+        if ($.isPlainObject(user.theme_props)) {
+            theme = user.theme_props;
+        } else {
+            theme = $.extend(true, {}, Constants.THEMES.default);
         }
 
-        return {theme};
+        let type = 'premade';
+        if (theme.type === 'custom') {
+            type = 'custom';
+        }
+
+        return {theme, type, showImportModal: false};
     }
     submitTheme(e) {
         e.preventDefault();
         var user = UserStore.getCurrentUser();
-        if (!user.props) {
-            user.props = {};
-        }
-        user.props.theme = this.state.theme;
+        user.theme_props = this.state.theme;
 
         Client.updateUser(user,
-            function success() {
-                this.props.updateSection('');
-                window.location.reload();
-            }.bind(this),
-            function fail(err) {
+            () => {
+                $('#user_settings').off('hidden.bs.modal', this.handleClose);
+                $('#user_settings').modal('hide');
+                this.props.updateTab('general');
+            },
+            (err) => {
                 var state = this.getStateFromStores();
                 state.serverError = err;
                 this.setState(state);
-            }.bind(this)
+            }
         );
     }
-    updateTheme(e, type) {
-        console.log(e);
-        console.log(type);
-        const theme = this.state.theme;
-        theme[type] = e.target.value;
+    updateTheme(theme) {
         this.setState({theme});
+        Utils.applyTheme(theme);
     }
-    updateRadio(e, section) {
-        console.log(e);
-        console.log(section);
-        const theme = this.state.theme;
-
-        if (section === 'premade') {
-            const user = UserStore.getCurrentUser();
-            if (user.props.theme && user.props.theme.type) {
-                theme.type = user.props.theme.type;
-            } else {
-                theme.type = 'default';
-            }
-        } else {
-            theme.type = 'custom';
-        }
-
-        this.setState({theme});
+    updateType(type) {
+        this.setState({type});
     }
     handleClose() {
-        this.setState({serverError: null});
+        const state = this.getStateFromStores();
+        state.serverError = null;
+
+        Utils.applyTheme(state.theme);
+
+        this.setState(state);
         this.props.updateTab('general');
     }
     componentDidMount() {
@@ -102,7 +85,9 @@ export default class UserSettingsAppearance extends React.Component {
     }
     componentWillUnmount() {
         $('#user_settings').off('hidden.bs.modal', this.handleClose);
-        this.props.updateSection('');
+    }
+    handleImportModal() {
+        this.setState({showImportModal: true});
     }
     render() {
         var serverError;
@@ -110,20 +95,24 @@ export default class UserSettingsAppearance extends React.Component {
             serverError = this.state.serverError;
         }
 
-        const theme = this.state.theme;
-        console.log(theme);
+        const displayCustom = this.state.type === 'custom';
 
-        let customSection;
-        let premadeSection;
-        if (theme.type === 'custom') {
-            customSection = (
-                <input
-                    type='text'
-                    value={theme.sidebarBg}
-                    onChange={this.updateTheme.bind(this, 'sidebarBg')}
+        let custom;
+        let premade;
+        if (displayCustom) {
+            custom = (
+                <CustomThemeChooser
+                    theme={this.state.theme}
+                    updateTheme={this.updateTheme}
                 />
             );
         } else {
+            premade = (
+                <PremadeThemeChooser
+                    theme={this.state.theme}
+                    updateTheme={this.updateTheme}
+                />
+            );
         }
 
         const themeUI = (
@@ -131,27 +120,43 @@ export default class UserSettingsAppearance extends React.Component {
                 <div className='radio'>
                     <label>
                         <input type='radio'
-                            checked={this.theme !== 'custom'}
-                            onChange={this.updateRadio.bind(this, 'premade')}
+                            checked={!displayCustom}
+                            onChange={this.updateType.bind(this, 'premade')}
                         >
                             {'Theme Colors'}
                         </input>
                     </label>
                     <br/>
                 </div>
-                {premadeSection}
+                {premade}
                 <div className='radio'>
                     <label>
                         <input type='radio'
-                            checked={this.theme === 'custom'}
-                            onChange={this.updateRadio.bind(this, 'custom')}
+                            checked={displayCustom}
+                            onChange={this.updateType.bind(this, 'custom')}
                         >
                             {'Custom Theme'}
                         </input>
                     </label>
                     <br/>
                 </div>
-                {customSection}
+                {custom}
+                <hr />
+                            {serverError}
+                <a
+                    className='btn btn-sm btn-primary'
+                    href='#'
+                    onClick={this.submitTheme}
+                >
+                    {'Submit'}
+                </a>
+                <a
+                    className='btn btn-sm theme'
+                    href='#'
+                    onClick={this.handleClose}
+                >
+                    {'Cancel'}
+                </a>
             </div>
         );
 
@@ -164,21 +169,33 @@ export default class UserSettingsAppearance extends React.Component {
                         data-dismiss='modal'
                         aria-label='Close'
                     >
-                        <span aria-hidden='true'>&times;</span>
+                        <span aria-hidden='true'>{'x'}</span>
                     </button>
                     <h4
                         className='modal-title'
                         ref='title'
                     >
-                        <i className='modal-back'></i>Appearance Settings
+                        <i className='modal-back'></i>{'Appearance Settings'}
                     </h4>
                 </div>
                 <div className='user-settings'>
-                    <h3 className='tab-header'>Appearance Settings</h3>
+                    <h3 className='tab-header'>{'Appearance Settings'}</h3>
                     <div className='divider-dark first'/>
                     {themeUI}
                     <div className='divider-dark'/>
                 </div>
+                <br/>
+                <a
+                    className='theme'
+                    onClick={this.handleImportModal}
+                >
+                    {'Import from Slack'}
+                </a>
+                <ImportThemeModal
+                    show={this.state.showImportModal}
+                    updateTheme={this.updateTheme}
+                    onModalDismissed={() => this.setState({showImportModal: false})}
+                />
             </div>
         );
     }
@@ -189,6 +206,5 @@ UserSettingsAppearance.defaultProps = {
 };
 UserSettingsAppearance.propTypes = {
     activeSection: React.PropTypes.string,
-    updateSection: React.PropTypes.func,
     updateTab: React.PropTypes.func
 };

@@ -68,8 +68,8 @@ export default class ChannelLoader extends React.Component {
         /* Update CSS classes to match user theme */
         var user = UserStore.getCurrentUser();
 
-        if (user.props.theme) {
-            Utils.applyTheme(user.props.theme);
+        if ($.isPlainObject(user.theme_props)) {
+            Utils.applyTheme(user.theme_props);
         }
 
         /* Setup global mouse events */

@@ -543,31 +543,28 @@ export function toTitleCase(str) {
 }
 
 export function applyTheme(theme) {
-    console.log(theme);
-    if (theme.link) {
-        console.log('hit1');
-        changeCss('div.theme', 'background-color:' + theme.link + ';');
-        changeCss('.btn.btn-primary', 'background: ' + theme.link + ';');
-        changeCss('.modal .modal-header', 'background: ' + theme.link + ';');
-        changeCss('.mention', 'background: ' + theme.link + ';');
-        changeCss('.mention-link', 'color: ' + theme.link + ';');
-        changeCss('@media(max-width: 768px){.search-bar__container', 'background: ' + theme.link + ';}');
-        changeCss('.search-item-container:hover', 'background: ' + changeOpacity(theme.link, 0.05) + ';');
+    if (theme.linkColor) {
+        changeCss('div.theme', 'background-color:' + theme.linkColor + ';');
+        changeCss('.btn.btn-primary', 'background: ' + theme.linkColor + ';');
+        changeCss('.modal .modal-header', 'background: ' + theme.linkColor + ';');
+        changeCss('.mention', 'background: ' + theme.linkColor + ';');
+        changeCss('.mention-link', 'color: ' + theme.linkColor + ';');
+        changeCss('@media(max-width: 768px){.search-bar__container', 'background: ' + theme.linkColor + ';}');
+        changeCss('.search-item-container:hover', 'background: ' + changeOpacity(theme.linkColor, 0.05) + ';');
 
-        if (theme.link === '#000000') {
-            changeCss('.btn.btn-primary:hover, .btn.btn-primary:active, .btn.btn-primary:focus', 'background: ' + changeColor(theme.link, +50) + ';');
+        if (theme.linkColor === '#000000') {
+            changeCss('.btn.btn-primary:hover, .btn.btn-primary:active, .btn.btn-primary:focus', 'background: ' + changeColor(theme.linkColor, +50) + ';');
             $('.team__header').addClass('theme--black');
-        } else if (theme.link === '#585858') {
-            changeCss('.btn.btn-primary:hover, .btn.btn-primary:active, .btn.btn-primary:focus', 'background: ' + changeColor(theme.link, +10) + ';');
+        } else if (theme.linkColor === '#585858') {
+            changeCss('.btn.btn-primary:hover, .btn.btn-primary:active, .btn.btn-primary:focus', 'background: ' + changeColor(theme.linkColor, +10) + ';');
             $('.team__header').addClass('theme--gray');
         } else {
-            changeCss('.btn.btn-primary:hover, .btn.btn-primary:active, .btn.btn-primary:focus', 'background: ' + changeColor(theme.link, -10) + ';');
-            changeCss('a.theme', 'color:' + theme.link + '; fill:' + theme.link + '!important;');
+            changeCss('.btn.btn-primary:hover, .btn.btn-primary:active, .btn.btn-primary:focus', 'background: ' + changeColor(theme.linkColor, -10) + ';');
+            changeCss('a.theme', 'color:' + theme.linkColor + '; fill:' + theme.linkColor + '!important;');
         }
     }
 
     if (theme.sidebarBg) {
-        console.log('hit2');
         changeCss('.sidebar--left', 'background:' + theme.sidebarBg);
     }
 }
