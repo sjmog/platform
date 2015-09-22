@@ -45,8 +45,8 @@ export default class UserSettingsAppearance extends React.Component {
         Client.updateUser(user,
             () => {
                 $('#user_settings').off('hidden.bs.modal', this.handleClose);
-                $('#user_settings').modal('hide');
                 this.props.updateTab('general');
+                $('#user_settings').modal('hide');
             },
             (err) => {
                 var state = this.getStateFromStores();
@@ -70,6 +70,7 @@ export default class UserSettingsAppearance extends React.Component {
 
         this.setState(state);
         this.props.updateTab('general');
+        $('#user_settings').modal('hide');
     }
     componentDidMount() {
         if (this.props.activeSection === 'theme') {
@@ -90,6 +91,7 @@ export default class UserSettingsAppearance extends React.Component {
         this.setState({showImportModal: true});
     }
     render() {
+        // asaad this control needs UI work
         var serverError;
         if (this.state.serverError) {
             serverError = this.state.serverError;

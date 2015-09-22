@@ -543,6 +543,7 @@ export function toTitleCase(str) {
 }
 
 export function applyTheme(theme) {
+    // asaad add the css changes here based on the different theme properties
     if (theme.linkColor) {
         changeCss('div.theme', 'background-color:' + theme.linkColor + ';');
         changeCss('.btn.btn-primary', 'background: ' + theme.linkColor + ';');

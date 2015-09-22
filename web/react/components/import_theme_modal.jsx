@@ -29,7 +29,7 @@ export default class ImportThemeModal extends React.Component {
 
         theme.sidebarBg = colors[0];
         theme.linkColor = colors[7];
-        // asaad add the rest here
+        // asaad add the rest of the slack to mattermost color conversions here
 
         this.props.updateTheme(theme);
     }
@@ -72,6 +72,7 @@ export default class ImportThemeModal extends React.Component {
         }
     }
     render() {
+        // asaad this control needs UI work
         return (
             <span>
                 <Modal

@@ -10,6 +10,7 @@ export default class PremadeThemeChooser extends React.Component {
         this.state = {};
     }
     render() {
+        // asaad this control needs UI work
         const theme = this.props.theme;
 
         const premadeThemes = [];

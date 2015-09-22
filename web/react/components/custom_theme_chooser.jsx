@@ -42,6 +42,7 @@ export default class CustomThemeChooser extends React.Component {
         this.props.updateTheme(theme);
     }
     render() {
+        // asaad this control needs UI work
         const theme = this.props.theme;
 
         const elements = [];
